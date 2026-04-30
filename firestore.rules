@@ -1,0 +1,65 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // 0. Global Safety Net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    // --- Materials ---
+    function isValidMaterial(data) {
+      return data.name is string && data.name.size() > 0 && data.name.size() <= 100
+          && data.type is string && data.type in ['iron_round', 'iron_square', 'flat_bar', 'frame_profile', 'leaf_profile', 'accessory']
+          && data.unit is string && data.unit in ['m', 'unit']
+          && data.pricePerUnit is number && data.pricePerUnit >= 0;
+    }
+
+    match /materials/{materialId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() 
+        && isValidId(materialId)
+        && isValidMaterial(incoming());
+      allow update: if isSignedIn()
+        && isValidMaterial(incoming());
+      allow delete: if isSignedIn();
+    }
+
+    // --- Quotes ---
+    function isValidQuote(data) {
+      return data.name is string && data.name.size() > 0 && data.name.size() <= 100
+          && data.type is string && data.type in ['window', 'door']
+          && data.width is number && data.width > 0
+          && data.height is number && data.height > 0
+          && data.userId == request.auth.uid;
+    }
+
+    match /quotes/{quoteId} {
+      allow read: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow create: if isSignedIn()
+        && isValidId(quoteId)
+        && isValidQuote(incoming());
+      allow update: if isSignedIn()
+        && existing().userId == request.auth.uid
+        && incoming().userId == request.auth.uid
+        && isValidQuote(incoming());
+      allow delete: if isSignedIn() && resource.data.userId == request.auth.uid;
+    }
+  }
+}

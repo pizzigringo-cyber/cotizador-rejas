@@ -1,0 +1,55 @@
+{
+  "entities": {
+    "Material": {
+      "title": "Material",
+      "description": "Definition of an iron material or accessory",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "type": { "type": "string", "enum": ["iron_round", "iron_square", "flat_bar", "frame_profile", "leaf_profile", "accessory"] },
+        "unit": { "type": "string", "enum": ["m", "unit"] },
+        "pricePerUnit": { "type": "number" },
+        "gauge": { "type": "string" }
+      },
+      "required": ["id", "name", "type", "unit", "pricePerUnit"]
+    },
+    "QuoteProject": {
+      "title": "Quote Project",
+      "description": "A calculated quote for a railing or door",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "type": { "type": "string", "enum": ["window", "door"] },
+        "name": { "type": "string" },
+        "width": { "type": "number" },
+        "height": { "type": "number" },
+        "orientation": { "type": "string", "enum": ["vertical", "horizontal"] },
+        "barMaterialId": { "type": "string" },
+        "frameMaterialId": { "type": "string" },
+        "leafFrameMaterialId": { "type": "string" },
+        "hasFrame": { "type": "boolean" },
+        "barSpacing": { "type": "number" },
+        "hingeCount": { "type": "number" },
+        "hasLock": { "type": "boolean" },
+        "lockBoxId": { "type": "string" },
+        "handleId": { "type": "string" },
+        "isDoubleLeaf": { "type": "boolean" },
+        "installationType": { "type": "string", "enum": ["recessed", "screwed"] },
+        "createdAt": { "type": "number" },
+        "userId": { "type": "string" }
+      },
+      "required": ["id", "type", "name", "width", "height", "orientation", "barMaterialId"]
+    }
+  },
+  "firestore": {
+    "/materials/{materialId}": {
+      "schema": "Material",
+      "description": "Global or per-user materials"
+    },
+    "/quotes/{quoteId}": {
+      "schema": "QuoteProject",
+      "description": "Stored quotes for users"
+    }
+  }
+}
