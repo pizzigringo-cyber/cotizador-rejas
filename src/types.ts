@@ -44,6 +44,7 @@ export interface QuoteProject {
   hasFrame: boolean;
   barSpacing: number;
   globalDiscount: number; // New field for overall discount
+  frameRotated?: boolean; // New field for rotating frame caño
   
   // Door specific
   hingeCount?: number;
@@ -66,10 +67,13 @@ export interface CalculationResult {
   cutList: {
     item: string;
     length: number;
+    originalLength?: number;
+    color?: string; // Color to link with adjustments
     count: number;
   }[];
   clearances: {
     description: string;
     value: number;
+    color?: string; // Color identifier
   }[];
 }

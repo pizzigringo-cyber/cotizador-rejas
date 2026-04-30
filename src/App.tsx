@@ -33,6 +33,7 @@ export default function App() {
     hasFrame: true,
     barSpacing: 120,
     globalDiscount: 0,
+    frameRotated: false,
     hasLock: false,
     installationType: 'recessed',
     createdAt: Date.now(),
@@ -105,6 +106,7 @@ export default function App() {
       id: Math.random().toString(36).substr(2, 9),
       name: `Abertura ${quoteItems.length + 2}`,
       globalDiscount: 0,
+      frameRotated: false,
       createdAt: Date.now(),
     });
   };
@@ -461,17 +463,34 @@ export default function App() {
                           />
                         </div>
                         {project.hasFrame && (
-                          <div>
-                            <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Perfil del Marco</label>
-                            <select
-                              value={project.frameMaterialId}
-                              onChange={e => setProject({ ...project, frameMaterialId: e.target.value })}
-                              className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg outline-none text-xs font-bold text-slate-700"
-                            >
-                              {materials.filter(m => m.type === MaterialType.FRAME_PROFILE || m.type === MaterialType.FLAT_BAR || m.type === MaterialType.LEAF_PROFILE).map(m => (
-                                <option key={m.id} value={m.id}>{m.name}</option>
-                              ))}
-                            </select>
+                          <div className="space-y-4">
+                            <div>
+                              <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Perfil del Marco</label>
+                              <select
+                                value={project.frameMaterialId}
+                                onChange={e => setProject({ ...project, frameMaterialId: e.target.value })}
+                                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg outline-none text-xs font-bold text-slate-700"
+                              >
+                                {materials.filter(m => m.type === MaterialType.FRAME_PROFILE || m.type === MaterialType.FLAT_BAR || m.type === MaterialType.LEAF_PROFILE).map(m => (
+                                  <option key={m.id} value={m.id}>{m.name}</option>
+                                ))}
+                              </select>
+                            </div>
+                            
+                            {/* Rotation Toggle if profile is rectangular */}
+                            {materials.find(m => m.id === project.frameMaterialId)?.name.match(/\d+\s*[xX]\s*\d+/) && 
+                             materials.find(m => m.id === project.frameMaterialId && !m.name.includes("-") && m.type !== MaterialType.FLAT_BAR) && (
+                              <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg border border-slate-100">
+                                <input
+                                  type="checkbox"
+                                  id="frameRotated"
+                                  checked={project.frameRotated}
+                                  onChange={e => setProject({ ...project, frameRotated: e.target.checked })}
+                                  className="w-4 h-4 accent-blue-600 cursor-pointer"
+                                />
+                                <label htmlFor="frameRotated" className="text-[10px] font-black text-slate-700 uppercase cursor-pointer">Girar Caño (Cara angosta al vano)</label>
+                              </div>
+                            )}
                           </div>
                         )}
                       </div>
@@ -586,29 +605,73 @@ export default function App() {
                           </tr>
                         </thead>
                         <tbody className="text-slate-600 divide-y divide-slate-100">
-                          {calculation.cutList.map((cut, idx) => (
-                            <tr key={idx} className="group hover:bg-slate-50 transition-colors">
-                              <td className="py-2.5 font-bold text-slate-800">{cut.item}</td>
-                              <td className="py-2.5 text-center font-black text-blue-600">{cut.count}</td>
-                              <td className="py-2.5 text-right font-mono font-bold">{cut.length}</td>
-                            </tr>
-                          ))}
+                          {calculation.cutList.map((cut, idx) => {
+                            const hasAdjustment = cut.originalLength && cut.originalLength !== cut.length;
+                            return (
+                              <tr key={idx} className="group hover:bg-slate-50 transition-colors">
+                                <td className="py-2.5 flex items-center gap-2">
+                                  {cut.color && <div className={cn("w-2 h-2 rounded-full flex-shrink-0", cut.color.replace('text-', 'bg-'))} />}
+                                  <span className="font-bold text-slate-800">{cut.item}</span>
+                                </td>
+                                <td className="py-2.5 text-center font-black text-blue-600">{cut.count}</td>
+                                <td className="py-2.5 text-right font-mono font-bold whitespace-nowrap">
+                                  {hasAdjustment && (
+                                    <>
+                                      <span className="text-[10px] text-slate-300 font-bold line-through mr-2">
+                                        {cut.originalLength}
+                                      </span>
+                                      <span className={cn("text-[10px] mr-2", cut.color || 'text-slate-400')}>
+                                        -{Math.round((cut.originalLength || 0) - cut.length)}
+                                      </span>
+                                    </>
+                                  )}
+                                  <span className={cn(cut.color || 'text-slate-800')}>
+                                    {cut.length}
+                                  </span>
+                                </td>
+                              </tr>
+                            );
+                          })}
                         </tbody>
                       </table>
                       
                       {calculation.clearances.length > 0 && (
-                        <div className="mt-6 p-4 bg-blue-50 rounded-xl border border-blue-100">
-                          <h4 className="text-[10px] font-black text-blue-800 uppercase tracking-tight mb-2 flex items-center gap-1">
-                            <Settings className="w-3 h-3" />
-                            Ajustes Aplicados
-                          </h4>
-                          <div className="space-y-1.5">
+                        <div className="mt-8 p-5 bg-slate-50 rounded-2xl border border-slate-200/50">
+                          <div className="flex items-center gap-2 mb-4">
+                            <div className="w-6 h-6 rounded-lg bg-blue-100 flex items-center justify-center">
+                              <Settings className="w-3.5 h-3.5 text-blue-600" />
+                            </div>
+                            <h4 className="text-xs font-black text-slate-700 uppercase tracking-tight">
+                              Glosario de Ajustes
+                            </h4>
+                          </div>
+                          
+                          <div className="grid grid-cols-1 gap-3">
                             {calculation.clearances.map((c, idx) => (
-                              <div key={idx} className="flex justify-between items-center text-[10px]">
-                                <span className="text-blue-700/80 font-medium">{c.description}</span>
-                                <span className="text-blue-900 font-black font-mono">-{c.value}mm</span>
+                              <div key={idx} className="flex justify-between items-center group">
+                                <div className="flex items-center gap-3">
+                                  <div className={cn(
+                                    "w-3 h-3 rounded-full flex-shrink-0 shadow-sm transition-transform group-hover:scale-110", 
+                                    c.color?.replace('text-', 'bg-') || 'bg-slate-300'
+                                  )} />
+                                  <span className={cn("text-[11px] font-bold uppercase tracking-tight", c.color || 'text-slate-500')}>
+                                    {c.description}
+                                  </span>
+                                </div>
+                                <div className="flex items-center gap-1.5">
+                                  <span className="text-[10px] font-black text-slate-300 font-mono">DESC</span>
+                                  <span className={cn("text-xs font-black font-mono px-2 py-0.5 rounded bg-white border border-slate-100 shadow-sm", c.color || 'text-slate-400')}>
+                                    -{c.value}mm
+                                  </span>
+                                </div>
                               </div>
                             ))}
+                          </div>
+                          
+                          <div className="mt-4 pt-4 border-t border-slate-200/50">
+                            <p className="text-[10px] text-slate-400 font-medium italic">
+                              * Las medidas en la lista de corte superiores identificadas con estos colores ya incluyen los descuentos indicados.
+                            </p>
                           </div>
                         </div>
                       )}
